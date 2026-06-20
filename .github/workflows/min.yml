@@ -1,0 +1,137 @@
+name: Build susfs r8s x1s z3s y2s.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+
+    env:
+      TOOLCHAIN_URI: "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/a71fa4c09d7109d611ee63964fc9fca58fee38cd/clang-r450784d.tar.gz"
+      ARCH: arm64
+      LLVM: 1
+      LLVM_IAS: 1
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Cache toolchain
+      id: cache-toolchain
+      uses: actions/cache@v5
+      with:
+        path: toolchain
+        key: toolchain-${{ env.TOOLCHAIN_URI }}
+
+    - name: Get toolchain
+      if: steps.cache-toolchain.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p toolchain/clang/host/linux-x86
+        curl --silent "${{ env.TOOLCHAIN_URI }}" | tar --extract --directory=toolchain/clang/host/linux-x86 --gzip
+
+    - name: Setup toolchain path
+      run: |
+        echo "${{ github.workspace }}/toolchain/clang/host/linux-x86/bin" >> $GITHUB_PATH
+
+    - name: ksu susfs
+      run: |
+        curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+
+    - name: Patch susfs
+      run: |
+        bash susfs_inline_hook_patches.sh
+        patch -p1 -F3 < susfs_patch_to_4.19.patch
+
+    - name: Get AnyKernel3
+      run: |
+        git clone https://github.com/redmax19/AnyKernel3
+
+    - name: Build
+      run: |
+        make O=out exynos9830_defconfig
+        make O=out ksu.config
+        make O=out z3s.config
+        make O=out x1s.config
+        make O=out r8s.config
+        make O=out y2s.config
+        make O=out --jobs=$(nproc --all) 2>&1 | tee out_build.log
+
+    - name: Build AnyKernel package
+      run: |
+        cp out/arch/arm64/boot/Image AnyKernel3/Image
+
+        cat << 'EOF' > AnyKernel3/anykernel.sh
+        ### AnyKernel3 Ramdisk Mod Script
+        ## osm0sis @ xda-developers
+
+        properties() { '
+        kernel.string=kernel_susfs_r8s_x1s_z3s_y2s
+        do.devicecheck=1
+        do.modules=0
+        do.systemless=1
+        do.cleanup=1
+        do.cleanuponabort=0
+        device.name1=r8s
+        device.name2=x1s
+        device.name3=z3s
+        device.name4=y2s
+        supported.versions=
+        supported.patchlevels=
+        supported.vendorpatchlevels=
+        '; }
+
+        block=/dev/block/by-name/boot;
+        is_slot_device=0;
+        ramdisk_compression=auto;
+        patch_vbmeta_flag=auto;
+
+        . tools/ak3-core.sh;
+
+        dump_boot;
+
+        write_boot;
+        EOF
+
+        cd AnyKernel3
+        zip -r9 "../kernel-susfs-2.1.0-r8s-x1s-z3s-y2s.zip" * -x .git .github README.md *placeholder
+
+    - name: Upload AnyKernel package
+      uses: actions/upload-artifact@v7
+      with:
+        name: AnyKernel package
+        path: kernel-susfs-2.1.0-r8s-x1s-z3s-y2s.zip
+
+    - name: Upload Build Logs
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: compilation-logs
+        path: out_build.log
+
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          kernel-susfs-2.1.0-r8s-x1s-z3s-y2s.zip
+          out_build.log
+        name: Kernel SUSFS r8s x1s z3s y2s - ${{ github.run_id }}
+        tag_name: build-${{ github.run_id }}
+        body: |
+          ## Kernel SUSFS Build
+
+          Devices:
+          - Samsung r8s
+          - Samsung x1s
+          - Samsung z3s
+          - Samsung y2s
+
+          Commit:
+          ${{ github.sha }}
+
+          Toolchain:
+          ${{ env.TOOLCHAIN_URI }}
