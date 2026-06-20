@@ -1,4 +1,4 @@
-name: Build susfs r8s x1s z3s y2s.
+name: Build susfs r8s
 
 on:
   workflow_dispatch:
@@ -55,10 +55,7 @@ jobs:
       run: |
         make O=out exynos9830_defconfig
         make O=out ksu.config
-        make O=out z3s.config
-        make O=out x1s.config
         make O=out r8s.config
-        make O=out y2s.config
         make O=out --jobs=$(nproc --all) 2>&1 | tee out_build.log
 
     - name: Build AnyKernel package
@@ -70,7 +67,7 @@ jobs:
         ## osm0sis @ xda-developers
 
         properties() { '
-        kernel.string=kernel_susfs_r8s_x1s_z3s_y2s
+        kernel.string=kernel_susfs_r8s
         do.devicecheck=1
         do.modules=0
         do.systemless=1
@@ -98,13 +95,7 @@ jobs:
         EOF
 
         cd AnyKernel3
-        zip -r9 "../kernel-susfs-2.1.0-r8s-x1s-z3s-y2s.zip" * -x .git .github README.md *placeholder
-
-    - name: Upload AnyKernel package
-      uses: actions/upload-artifact@v7
-      with:
-        name: AnyKernel package
-        path: kernel-susfs-2.1.0-r8s-x1s-z3s-y2s.zip
+        zip -r9 "../kernel-susfs-2.1.0-r8s.zip" * -x .git .github README.md *placeholder
 
     - name: Upload Build Logs
       if: always()
@@ -117,18 +108,15 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          kernel-susfs-2.1.0-r8s-x1s-z3s-y2s.zip
+          kernel-susfs-2.1.0-r8s.zip
           out_build.log
-        name: Kernel SUSFS r8s x1s z3s y2s - ${{ github.run_id }}
+        name: Kernel SUSFS r8s - ${{ github.run_id }}
         tag_name: build-${{ github.run_id }}
         body: |
           ## Kernel SUSFS Build
 
-          Devices:
+          Device:
           - Samsung r8s
-          - Samsung x1s
-          - Samsung z3s
-          - Samsung y2s
 
           Commit:
           ${{ github.sha }}
