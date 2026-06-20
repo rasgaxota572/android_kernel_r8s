@@ -1,4 +1,4 @@
-name: Build susfs r8s
+name: Build susfs r8s x1s z3s y2s
 
 on:
   workflow_dispatch:
@@ -66,16 +66,16 @@ jobs:
         ### AnyKernel setup
         # global properties
         properties() { '
-        kernel.string=kernel_susfs_r8s
+        kernel.string=kernel_susfs r8s,x1s,z3s,y2s
         do.devicecheck=1
         do.modules=0
         do.systemless=1
         do.cleanup=1
         do.cleanuponabort=0
         device.name1=r8s
-        device.name2=
-        device.name3=
-        device.name4=
+        device.name2=x1s
+        device.name3=z3s
+        device.name4=y2s
         device.name5=
         supported.versions=
         supported.patchlevels=
@@ -100,13 +100,13 @@ jobs:
         EOF
 
         cd AnyKernel3
-        zip -r9 "../kernel-susfs-2.1.0.r8s.zip" * -x .git .github README.md *placeholder
+        zip -r9 "../kernel-susfs-2.1.0.r8s,x1s,z3s,y2s.zip" * -x .git .github README.md *placeholder
 
     - name: Upload AnyKernel package
       uses: actions/upload-artifact@v7
       with:
         name: AnyKernel package
-        path: kernel-susfs-2.1.0.r8s.zip
+        path: kernel-susfs-2.1.0.r8s,x1s,z3s,y2s.zip
   
     - name: Upload Build Logs
       if: always()
