@@ -48,9 +48,9 @@ jobs:
 
     - name: Build
       run: |
-        make O=out exynos9830_defconfig 2>&1 | tee out_defconfig.log
+        make O=out exynos9830_defconfig
         make O=out ksu.config 
-        make O=out r8s.config 2>&1 | tee out_config.log
+        make O=out r8s.config
         make O=out --jobs=$(nproc --all) 2>&1 | tee out_build.log
 
     - name: Build AnyKernel package
@@ -110,7 +110,4 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: compilation-logs
-        path: |
-          out_defconfig.log
-          out_config.log
-          out_build.log
+        path: out_build.log
